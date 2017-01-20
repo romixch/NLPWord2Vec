@@ -1,0 +1,6 @@
+alter: alter jung
+interesse: interesse eintwickeln programmieren
+technologie: framework werkzeuge technologie
+kosten: kosten preis wieviel
+sprache: sprache
+beispiel: beispiel referenz

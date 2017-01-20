@@ -1,0 +1,21 @@
+group 'ch.botfabrik.nlp.word2vec'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile "commons-cli:commons-cli:1.3"
+    compile "org.apache.commons:commons-lang3:3.5"
+    compile "org.slf4j:slf4j-jdk14:1.7.22"
+    compile "org.deeplearning4j:deeplearning4j-nlp:0.7.2"
+    compile "org.nd4j:nd4j-native:0.7.2:linux-x86_64"
+    compile "org.nd4j:nd4j-native-platform:0.7.2"
+    testCompile "junit:junit:4.11"
+    testCompile "org.hamcrest:hamcrest-all:1.3"
+}
