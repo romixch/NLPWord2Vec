@@ -17,7 +17,7 @@ To achieve this there are currently following steps to follow:
 
 ## Transform data
 
-Currently there is a class TransformWikiText which lets you transform the latest texts from wikipedia in form of an
+Currently there is a class `TransformWikiText` which lets you transform the latest texts from wikipedia in form of an
 xml file. The transformed file consists of simple text with a senctence on each line.
 
 ## Learning
