@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -18,6 +21,7 @@ public class IntentionTest {
 
     private static Logger LOGGER = LoggerFactory.getLogger(IntentionTest.class);
     private static ServerMain serverMain;
+    private Lemmatizer lemmatizer = new Lemmatizer();
 
     @BeforeClass
     public static void loadModel() throws IOException {
@@ -81,7 +85,12 @@ public class IntentionTest {
     }
 
     private void assertIntention(String question, String intention) throws IOException {
-        GuessedIntention guesses = serverMain.guessIntention(question);
+        LOGGER.info("Testing question: " + question);
+        List<String> words = Arrays.stream(lemmatizer.apply(question).split(" "))
+                .filter(s -> !s.contains("."))
+                .collect(Collectors.toList());
+        LOGGER.info("Question lemmatized: " + words);
+        GuessedIntention guesses = serverMain.guessIntention(words);
         LOGGER.info("'" + question + "' : " + guesses);
         assertThat(guesses.getSortedGuesses().first().getIntention(), is(intention));
     }

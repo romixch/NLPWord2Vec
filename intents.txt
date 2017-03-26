@@ -1,6 +1,10 @@
-alter: alter jung
-interesse: interesse eintwickeln programmieren
+alter: alter jung alt
+interesse: interesse entwickeln programmieren
 technologie: framework werkzeuge technologie
-kosten: kosten preis wieviel
+kosten: kosten preis
 sprache: sprache
 beispiel: beispiel referenz
+ja: ja positiv
+nein: nein negativ nicht
+befinden: wie geht gut
+dokumentation: dokumentation manual information

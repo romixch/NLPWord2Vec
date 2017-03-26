@@ -35,4 +35,8 @@ public class Intents {
     public Map<String, List<String>> getIntents() {
         return intents;
     }
+
+    public List<String> getAllWords() {
+        return intents.values().stream().flatMap(words -> words.stream()).collect(Collectors.toList());
+    }
 }

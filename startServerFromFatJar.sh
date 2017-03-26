@@ -1,0 +1,1 @@
+java -jar build/libs/NLPWord2Vec-all-1.0-SNAPSHOT.jar dewiki-latest-pages-articles1.txt.model

@@ -11,18 +11,28 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Cool stuff to learn a word2vec model and asking it some questions.
- * Created by roman on 15.01.17.
+ * Cool stuff to learn a word2vec model and asking it some questions. Created by roman on 15.01.17.
  */
 public class ServerMain {
 
-    private static Logger logger = LoggerFactory.getLogger(LearnMain.class);
+    private static Logger logger;
+
+    static {
+        System.setProperty("java.util.logging.config.file", "./logging.properties");
+        logger = LoggerFactory.getLogger(LearnMain.class);
+    }
 
     public static void main(String[] args) throws Exception {
+
         if (args.length != 1) {
             throw new RuntimeException("You must define an input file as program parameter.");
         }
@@ -30,6 +40,7 @@ public class ServerMain {
 
         File modelFile = new File(args[0]);
         if (modelFile.exists()) {
+            logger.info("Modell wird geladen...");
             serverMain.load(modelFile);
             serverMain.askCoolQuestions();
         } else {
@@ -37,55 +48,82 @@ public class ServerMain {
         }
     }
 
-    public ServerMain() {
-        System.setProperty("java.util.logging.config.file", "logging.properties");
-    }
-
     private Word2Vec word2Vec;
+    private Lemmatizer lemmatizer = new Lemmatizer();
 
     private void askCoolQuestions() throws IOException {
-        logger.info("Closest words:");
-        Collection<String> nearFilms = word2Vec.wordsNearest("film", 10);
-        logger.info("10 Words closest to 'film': " + nearFilms);
-        Collection<String> maybeFrau = word2Vec.wordsNearest(Arrays.asList("königin", "mann"), Arrays.asList("könig"), 10);
+        logger.info("Ich bin bereit zum Rechnen mit Wörtern.");
+        /*Collection<String> maybeFrau = word2Vec.wordsNearest(Arrays.asList("königin", "mann"), Arrays.asList("könig"), 10);
         logger.info("Given König -> Königin. What is Mann -> ? " + maybeFrau);
         Collection<String> maybeParis = word2Vec.wordsNearest(Arrays.asList("frankreich", "zürich"), Arrays.asList("schweiz"), 10);
         logger.info("Given Schweiz -> Zürich. What is Frankreich -> ? " + maybeParis);
+        Collection<String> maybePutin = word2Vec.wordsNearest(Arrays.asList("russland", "obama"), Arrays.asList("usa"), 10);
+        logger.info("Given USA -> Obama. What is Russland -> ? " + maybePutin);
+        Collection<String> maybePutinAgain = word2Vec.wordsNearestSum(Arrays.asList("präsident", "russland"), Collections.emptyList(), 10);
+        logger.info("Russland + Präsident" + maybePutinAgain);*/
         while (true) {
             BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
             String input = br.readLine().toLowerCase();
             if (input.equals("exit")) {
                 break;
             }
-            String[] words = input.split(" ");
-            if (words.length == 1) {
-                if (word2Vec.hasWord(words[0])) {
-                    Collection<String> wordsNearest = word2Vec.wordsNearest(words[0], 10);
-                    logger.info("10 Words closest to '" + words[0] + "': " + wordsNearest);
-                    int indexOfWord = word2Vec.getVocab().indexOf(words[0]);
-                    logger.info("Index of " + words[0] + ": " + indexOfWord);
+            List<String> words = lemmatizer.applyLeavingPlusAndMinusIntact(input).stream()
+                    .filter(s -> !s.contains("."))
+                    .collect(Collectors.toList());
+            if (words.size() == 0)
+                continue;
+            String word1 = words.get(0);
+            if (words.size() == 1) {
+                if (word2Vec.hasWord(word1)) {
+                    Collection<String> wordsNearest = word2Vec.wordsNearest(word1, 10);
+                    logger.info("10 Wörter, die am nächsten zu '" + word1 + "' stehen: " + wordsNearest);
+                    int indexOfWord = word2Vec.getVocab().indexOf(word1);
+                    logger.info(word1 + " ist das " + indexOfWord + ". häufigste Wort.");
                 } else {
-                    logger.info("Word " + words[0] + " is not in my dictionary");
+                    logger.info("Ich kenne das Wort " + word1 + " nicht.");
                 }
-            } else if (words.length == 2) {
-                if (word2Vec.hasWord(words[0]) && word2Vec.hasWord(words[1])) {
-                    double similarity = word2Vec.similarity(words[0], words[1]);
-                    logger.info("Similarity: " + similarity);
-                    int indexOfWord1 = word2Vec.getVocab().indexOf(words[0]);
-                    logger.info("Index of " + words[0] + ": " + indexOfWord1);
-                    int indexOfWord2 = word2Vec.getVocab().indexOf(words[1]);
-                    logger.info("Index of " + words[1] + ": " + indexOfWord2);
+            } else if (words.size() == 2) {
+                String word2 = words.get(1);
+                if (word2Vec.hasWord(word1) && word2Vec.hasWord(word2)) {
+                    double similarity = word2Vec.similarity(word1, word2);
+                    logger.info("Ähnlichkeit: " + similarity);
+                    int indexOfWord1 = word2Vec.getVocab().indexOf(word1);
+                    logger.info(word1 + " ist das " + indexOfWord1 + ". häufigste Wort.");
+                    int indexOfWord2 = word2Vec.getVocab().indexOf(word2);
+                    logger.info(word2 + " ist das " + indexOfWord2 + ". häufigste Wort.");
                 } else {
-                    logger.info("Words " + words[0] + " and " + words[1] + " are not in my dictionary");
+                    if (!word2Vec.hasWord(word1))
+                        logger.info("Ich kenne das Wort " + word1 + " nicht.");
+                    if (!word2Vec.hasWord(word2))
+                        logger.info("Ich kenne das Wort " + word2 + " nicht.");
                 }
+            } else if (input.matches("\\S+[ [\\+|\\-] \\S+]*")) {
+                ArrayList<String> positive = new ArrayList<>();
+                ArrayList<String> negative = new ArrayList<>();
+                boolean isPositive = true;
+                for (int i = 0; i < words.size(); i++) {
+                    String currentWord = words.get(i);
+                    if ("+".equals(currentWord)) {
+                        isPositive = true;
+                    } else if ("-".equals(currentWord)) {
+                        isPositive = false;
+                    } else {
+                        if (isPositive)
+                            positive.add(currentWord);
+                        else
+                            negative.add(currentWord);
+                    }
+                }
+                Collection<String> nearest = word2Vec.wordsNearest(positive, negative, 10);
+                List<String> resultWords = nearest.stream().filter(s -> !words.contains(s)).collect(Collectors.toList());
+                logger.info("= " + resultWords);
             } else {
                 try {
-                    GuessedIntention guessedIntentionses = guessIntention(input);
+                    GuessedIntention guessedIntentionses = guessIntention(words);
                     logger.info("Result: " + guessedIntentionses);
                 } catch (Exception e) {
                     logger.error("Oops! There was an exception:", e);
                 }
-
             }
         }
     }
@@ -94,38 +132,38 @@ public class ServerMain {
         word2Vec = WordVectorSerializer.loadFullModel(modelFile.getAbsolutePath());
     }
 
-    public GuessedIntention guessIntention(String input) throws IOException {
-        String normalized = TransformWikiText.normalizeText(input.toLowerCase());
-        String[] words = normalized.replaceAll("[\\.\\!\\?]", "").split(" ");
-        List<String> wordList = Arrays.asList(words).stream()
-                .map(String::trim)
-                .filter(word -> !word.isEmpty())
-                .filter(word2Vec::hasWord)
-                .filter(this::filterOutTop50Words)
-                .collect(Collectors.toList());
-
-        logger.debug("using following words: " + wordList);
-
-        GuessedIntention guesses = new GuessedIntention();
+    public GuessedIntention guessIntention(List<String> words) throws IOException {
         Intents intent = new Intents();
         intent.load();
+        List<String> whitelistWordsNotToFilterOut = intent.getAllWords();
+
+        List<String> wordList = words.stream()
+                .map(String::trim)
+                .map(String::toLowerCase)
+                .filter(word -> !word.isEmpty())
+                .filter(this::filterOutWordsNotExistingInDictionary)
+                .filter(word -> filterOutTop40Words(word, whitelistWordsNotToFilterOut))
+                .collect(Collectors.toList());
+
+        logger.info("using following words: " + wordList);
+
+        GuessedIntention guesses = new GuessedIntention();
         double dictionarySize = word2Vec.vocab().numWords();
         Map<String, List<String>> intents = intent.getIntents();
         for (Map.Entry<String, List<String>> intentionEntry : intents.entrySet()) {
+            logger.info("****** Analysing intention " + intentionEntry.getKey());
             List<String> intentionWords = intentionEntry.getValue();
             BigDecimal sumForIntention = new BigDecimal(0);
 
-            for (String word: wordList) {
+            for (String word : wordList) {
                 BigDecimal sumOfOneWord = intentionWords.stream()
                         .filter(intentionWord -> word2Vec.hasWord(intentionWord))
                         .map(intentionWord -> getSimilarity(word, intentionWord))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                double wordRelevance = (double) word2Vec.vocab().indexOf(word) / dictionarySize;
-                wordRelevance = 1;
-                sumForIntention = sumForIntention.add(sumOfOneWord.multiply(new BigDecimal(wordRelevance)));
+                sumForIntention = sumForIntention.add(sumOfOneWord);
             }
-            BigDecimal weightedSum = sumForIntention.divide(new BigDecimal(wordList.size()), BigDecimal.ROUND_HALF_UP);
+            BigDecimal weightedSum = sumForIntention.divide(new BigDecimal(intentionWords.size()), BigDecimal.ROUND_HALF_UP);
             guesses.addIntention(intentionEntry.getKey(), weightedSum.doubleValue());
         }
         return guesses;
@@ -133,12 +171,28 @@ public class ServerMain {
 
     private BigDecimal getSimilarity(String word, String intentionWord) {
         double similarity = word2Vec.similarity(word, intentionWord);
+        logger.info("Similarity between " + word + " and " + intentionWord + ": " + similarity);
         return new BigDecimal(similarity);
     }
 
-    private boolean filterOutTop50Words(String word) {
+    private boolean filterOutWordsNotExistingInDictionary(String word) {
+        boolean filterValue;
+        filterValue = word2Vec.hasWord(word);
+        if (!filterValue) {
+            logger.info("Word '" + word + "' filtered out because it is not in dictionary.");
+        }
+        return filterValue;
+    }
+
+    private boolean filterOutTop40Words(String word, List<String> whitelistWords) {
         int index = word2Vec.getVocab().indexOf(word);
-        logger.debug(word + ": " + index);
-        return index > 50;
+        boolean filterValue = true;
+        if (!whitelistWords.contains(word)) {
+            if (index <= 40) {
+                filterValue = false;
+                logger.info("Word '" + word + "' filtered out because of it's dictionary index " + index);
+            }
+        }
+        return filterValue;
     }
 }
