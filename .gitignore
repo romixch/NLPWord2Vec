@@ -14,3 +14,8 @@ hs_err_pid*
 .idea
 .gradle
 build
+
+# Exclude local models from wikipedia
+*wiki*.xml
+*wiki*.model
+*wiki*.txt
